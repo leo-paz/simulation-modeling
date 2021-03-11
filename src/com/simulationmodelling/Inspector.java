@@ -1,12 +1,16 @@
 package com.simulationmodelling;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 public class Inspector {
    private int inspectorId;
    private Random r;
+   private ArrayList<Buffer> buffers;
+
    public Inspector(){
        r = new Random();
+       buffers = new ArrayList<>();
 
    }
 

@@ -1,9 +1,9 @@
 import java.util.Random;
 
-public class inspector {
+public class Inspector {
    private int inspectorId;
    private Random r;
-   public inspector(){
+   public Inspector(){
        r = new Random();
 
    }

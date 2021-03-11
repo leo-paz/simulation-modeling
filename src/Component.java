@@ -1,3 +1,3 @@
 enum Component {
-    P1, P2, P3
+    C1, C2, C3
 }

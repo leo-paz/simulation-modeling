@@ -1,3 +1,5 @@
+package com.simulationmodelling;
+
 import java.util.Random;
 
 public class Inspector {
@@ -26,11 +28,11 @@ public class Inspector {
         randomNumber = randomNumber % 3;
         switch(randomNumber){
             case 0:
-                return Component.P1;
+                return Component.C1;
             case 1:
-                return Component.P2;
+                return Component.C2;
             case 2:
-                return Component.P3;
+                return Component.C3;
             default:
                 return generateComponent(seed);
         }

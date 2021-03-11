@@ -1,3 +1,5 @@
+package com.simulationmodelling;
+
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Buffer {

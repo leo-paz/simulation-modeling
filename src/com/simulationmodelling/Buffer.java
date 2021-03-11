@@ -4,6 +4,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class Buffer {
     private Workstation bufferOwner;
+
+    private Inspector bufferInspector;
     private ArrayBlockingQueue<Component> queueBuffer;
     private final int MAX_CAPACITY = 2;
 
@@ -24,6 +26,11 @@ public class Buffer {
         return (this.queueBuffer.size() < this.MAX_CAPACITY);
     }
 
+    public int getSize(){
+        return this.queueBuffer.size();
+    }
+
+
     public void addComponent(Component c){
         try {
             this.queueBuffer.put(c);
@@ -31,5 +38,17 @@ public class Buffer {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+    }
+
+    public void setBufferOwner(Workstation bufferOwner) {
+        this.bufferOwner = bufferOwner;
+    }
+
+    public Inspector getBufferInspector() {
+        return bufferInspector;
+    }
+
+    public void setBufferInspector(Inspector bufferInspector) {
+        this.bufferInspector = bufferInspector;
     }
 }

@@ -14,11 +14,38 @@ public class Inspector {
 
    }
 
+   public void addBuffer(Buffer buffer){
+       this.buffers.add(buffer);
+   }
+
+
    /**
     * Puts a random component onto a buffer
     */
    public void putComponents(){
-
+       while(true){
+        Component temp = generateComponent(1234);
+        for(Buffer b : this.buffers){
+            if(b.getSize()==0){
+                b.addComponent(temp);
+                return;
+            }
+        }
+        for(Buffer b : this.buffers){
+            if(b.getSize()==1){
+                b.addComponent(temp);
+                return;
+            }
+        }
+        try {
+            this.wait();
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+       }
+       
+        //IF IT GETS HERE THEN ITS BLOCKED FROM PUTTING COMPONENTS
    }
 
    /**
@@ -41,4 +68,12 @@ public class Inspector {
                 return generateComponent(seed);
         }
    }
+
+public int getInspectorId() {
+    return inspectorId;
+}
+
+public void setInspectorId(int inspectorId) {
+    this.inspectorId = inspectorId;
+}
 }

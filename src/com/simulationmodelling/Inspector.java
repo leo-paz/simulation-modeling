@@ -1,19 +1,41 @@
 package com.simulationmodelling;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 public class Inspector {
    private int inspectorId;
+   private float lambda;
+   private ArrayList<Float> procTimes;
    private Random r;
    private ArrayList<Buffer> buffers;
 
-   public Inspector(){
+   public Inspector(String pathToData) throws FileNotFoundException{
        r = new Random();
        buffers = new ArrayList<>();
+       File file = new File(pathToData);
+        Scanner scanner = new Scanner(file);
+        while (scanner.hasNextLine()) {
+            try {
+                procTimes.add(Float.parseFloat(scanner.nextLine()));
+            } catch (NumberFormatException e) {
+                System.out.printf("Failed to read string, but continuing: %s\n", e.toString());
+            }
+        }
 
    }
 
+
+   private float calculateMean() {
+        float sum = 0.0f;
+        for (Float num: procTimes) {
+            sum += num;
+        }
+        return sum / 300;
+    }
    public void addBuffer(Buffer buffer){
        this.buffers.add(buffer);
    }

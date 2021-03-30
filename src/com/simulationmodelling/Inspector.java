@@ -58,7 +58,7 @@ public class Inspector implements Runnable {
     }
 
     private Component getRandomComponent(){
-        Random rand = new Random();
+        Random rand = new Random(new Random().nextInt());
         return (Component) componentsLambdas.keySet().toArray()[rand.nextInt(componentsLambdas.keySet().size())];
     }
     

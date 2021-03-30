@@ -2,66 +2,132 @@ package com.simulationmodelling;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Scanner;
-import java.util.Random;
+import java.util.*;
 
-public abstract class Workstation implements Runnable{
-    protected ArrayList<Buffer> buffers;
-    protected ArrayList<Float> procTimes;
-    public int iterations;
-    protected int procIndex;
-    private int ID;
+public class Workstation implements Runnable {
+    
     private float lambda;
+    private boolean shouldStop = false;
+    public int iterations;
+    private int productsProduced = 0;
+    private HashMap<Component, Integer> buffers = new HashMap<>();
 
-    public Workstation(String pathToData, int iters, int id) throws FileNotFoundException {
-        ID = id;
-        buffers = new ArrayList<Buffer>();
-        procTimes = new ArrayList<>();
-        iterations = iters;
-        procIndex = 0;
+    public Workstation(Product product, String pathToData, Integer iterations) {
+        this.iterations = iterations;
+        lambda = calculateLambda(pathToData);
+        setBuffers(product);
+    }
+
+    private float calculateLambda(String pathToData) {
+        ArrayList<Float> procTimes = new ArrayList<Float>();
         File file = new File(pathToData);
-        Scanner scanner = new Scanner(file);
-        var max
-        while (scanner.hasNextLine()) {
+        Scanner scanner = null;
+        try {
+            scanner = new Scanner(file);
+        } catch (FileNotFoundException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+        while (scanner.hasNextFloat()) {
             try {
-                procTimes.add(Float.parseFloat(scanner.nextLine()));
+                procTimes.add(scanner.nextFloat());
             } catch (NumberFormatException e) {
                 System.out.printf("Failed to read string, but continuing: %s\n", e.toString());
             }
         }
-        lambda = calculateMean();
+        scanner.close();
+        return calculateMean(procTimes);
     }
 
-    @Override
-    public void run(){
-        for(int i = 0; i<iterations; i++){
-
-            // TO DO: Create build products function
-            //buildProduct();
-        }
-    }
-
-    public void addBuffer(Buffer buffer) {
-        buffers.add(buffer);
-    }
-
-    private float calculateMean() {
+    private Float calculateMean(ArrayList<Float> procTimes) {
         float sum = 0.0f;
-        for (Float num: procTimes) {
+        for (Float num : procTimes) {
             sum += num;
         }
         return sum / 300;
     }
 
-    public Float getNextServiceTime() {
+    private Float getNextServiceTime() {
         var rand = new Random();
-        var num = rand.nextDouble();
+        var num = rand.nextFloat();
         return (float) (Math.log(1 - num) / (-lambda));
     }
 
-    public int getID() {
-        return ID;
+    public HashMap<Component, Integer> getBuffers() {
+        return buffers;
+    }
+
+    private void setBuffers(Product Product){
+        switch (Product) {
+            case P1:
+                buffers.put(Component.C1, 0);
+                break;
+            case P2:
+                buffers.put(Component.C1, 0);
+                buffers.put(Component.C2, 0);
+                break;
+            case P3:
+                buffers.put(Component.C1, 0);
+                buffers.put(Component.C3, 0);
+                break;
+        }
+    }
+
+    public synchronized void put(Component Component){
+        while (buffers.get(Component) == 2) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        buffers.put(Component,buffers.get(Component) +1);
+        notifyAll();
+    }
+
+    @Override
+    public void run() {
+        Integer currentIterations = 0;
+        while(currentIterations < iterations && keepRunning()){
+            if(canMakeProduct()){
+              makeProduct();
+              currentIterations++;
+            }
+        }
+    }
+
+    private boolean canMakeProduct(){
+        boolean makeProduct = true;
+        for (Component component: buffers.keySet()) {
+            if(buffers.get(component) ==0){
+                makeProduct = false;
+            }
+        }
+        return makeProduct;
+    }
+
+    private void makeProduct(){
+        try {
+            Thread.sleep((long) (getNextServiceTime().longValue() * 1000L));
+            //  System.out.println("Produced: " + Product.name());
+            productsProduced++;
+            for (Component component: buffers.keySet()) {
+                buffers.put(component,buffers.get(component)-1) ;
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void shouldStop() {
+        shouldStop = true;
+    }
+
+    private synchronized boolean keepRunning() {
+        return !shouldStop;
+    }
+
+    public int getProductsProduced() {
+        return productsProduced;
     }
 }

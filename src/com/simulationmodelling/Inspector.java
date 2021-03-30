@@ -2,40 +2,48 @@ package com.simulationmodelling;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
 
-public class Inspector {
-    private int inspectorId;
-    private float lambda;
-    protected int procIndex;
-    private ArrayList<Float> procTimes;
-    public int iterations;
+public class Inspector implements Runnable {
+    private HashMap<Component, List<Workstation>> workstations;
+    private HashMap<Component, Float> componentsLambdas = new HashMap<Component, Float>();
+    private boolean doStop = false;
+    private Integer iterations;
     private Random r;
-    private ArrayList<Buffer> buffers;
+    private float blockedTime = 0;
 
-    public Inspector(String pathToData, int iters, int id) throws FileNotFoundException {
+    public Inspector(HashMap<Component, String> components, HashMap<Component, List<Workstation>> workstations, Integer iterations) {
+        this.workstations = workstations;
+        this.iterations = iterations;
+        
+        for(Component c: components.keySet()) {
+            componentsLambdas.put(c, calculateLambda(components.get(c)));
+        }
         r = new Random();
-        inspectorId = id;
-        iterations = iters;
-        procTimes = new ArrayList<>();
-        procIndex = 0;
-        buffers = new ArrayList<Buffer>();
+    }
+
+    private float calculateLambda(String pathToData) {
+        ArrayList<Float> procTimes = new ArrayList<Float>();
         File file = new File(pathToData);
-        Scanner scanner = new Scanner(file);
-        while (scanner.hasNextLine()) {
+        Scanner scanner = null;
+        try {
+            scanner = new Scanner(file);
+        } catch (FileNotFoundException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+        while (scanner.hasNextFloat()) {
             try {
-                procTimes.add(Float.parseFloat(scanner.nextLine()));
+                procTimes.add(scanner.nextFloat());
             } catch (NumberFormatException e) {
                 System.out.printf("Failed to read string, but continuing: %s\n", e.toString());
             }
         }
-        lambda = calculateMean();
-
+        scanner.close();
+        return calculateMean(procTimes);
     }
 
-    private float calculateMean() {
+    private Float calculateMean(ArrayList<Float> procTimes) {
         float sum = 0.0f;
         for (Float num : procTimes) {
             sum += num;
@@ -43,72 +51,90 @@ public class Inspector {
         return sum / 300;
     }
 
-    public Float getNextServiceTime() {
+    private Float getNextServiceTime(Component component) {
         var rand = new Random();
-        var num = rand.nextDouble();
-        return (float) (Math.log(1 - num) / (-lambda));
+        var num = rand.nextFloat();
+        return (float) (Math.log(1 - num) / (-componentsLambdas.get(component)));
     }
 
-    public void addBuffer(Buffer buffer) {
-        this.buffers.add(buffer);
+    private Component getRandomComponent(){
+        Random rand = new Random();
+        return (Component) componentsLambdas.keySet().toArray()[rand.nextInt(componentsLambdas.keySet().size())];
     }
+    
+    //     /**
+    //  * Generates a random component
+    //  * 
+    //  * @param seed
+    //  * @return
+    //  */
+    // public Component generateComponent(long seed) {
+    //     r.setSeed(seed);
+    //     int randomNumber = r.nextInt();
+    //     randomNumber = randomNumber % 3;
+    //     switch (randomNumber) {
+    //     case 0:
+    //         return Component.C1;
+    //     case 1:
+    //         return Component.C2;
+    //     case 2:
+    //         return Component.C3;
+    //     default:
+    //         return generateComponent(seed);
+    //     }
+    // }
 
-    /**
-     * Puts a random component onto a buffer
-     */
-    public void putComponents() {
-        while (true) {
-            Component temp = generateComponent(1234);
-            for (Buffer b : this.buffers) {
-                if (b.getSize() == 0) {
-                    b.addComponent(temp);
-                    return;
-                }
-            }
-            for (Buffer b : this.buffers) {
-                if (b.getSize() == 1) {
-                    b.addComponent(temp);
-                    return;
-                }
-            }
+    @Override
+    public void run() {
+        Integer currentIterations = 0;
+        while(currentIterations < iterations && keepRunning()) {
+            Component component = getRandomComponent();
+
             try {
-                this.wait();
+                Thread.sleep((long) (getNextServiceTime(component).longValue() * 1000L)); //* 1000L));
+
+                Workstation workstation = findBuffer(component);
+                if(workstation == null) {
+                    long blockedStartTime = System.currentTimeMillis();
+                    while (workstation == null) {
+                        //IF IT GETS HERE THEN ITS BLOCKED
+                        workstation = findBuffer(component);
+                    }
+                    long blockedEndTime = System.currentTimeMillis();
+                    blockedTime += (blockedEndTime - blockedStartTime);
+                }
+
+                workstation.put(component);
+                currentIterations++;
+
             } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
-
-        // IF IT GETS HERE THEN ITS BLOCKED FROM PUTTING COMPONENTS
     }
 
-    /**
-     * Generates a random component
-     * 
-     * @param seed
-     * @return
-     */
-    public Component generateComponent(long seed) {
-        r.setSeed(seed);
-        int randomNumber = r.nextInt();
-        randomNumber = randomNumber % 3;
-        switch (randomNumber) {
-        case 0:
-            return Component.C1;
-        case 1:
-            return Component.C2;
-        case 2:
-            return Component.C3;
-        default:
-            return generateComponent(seed);
+    private Workstation findBuffer(Component component){
+        Workstation workstationBuffer = null;
+        List<Workstation> workstationList = this.workstations.get(component);
+
+        for (Workstation workstation: workstationList) {
+            if((workstationBuffer == null && workstation.getBuffers().get(component) <2) || (workstationBuffer != null &&  workstation.getBuffers().get(component) < workstationBuffer.getBuffers().get(component))){
+                workstationBuffer = workstation;
+            }
         }
+        return workstationBuffer;
     }
 
-    public int getInspectorId() {
-        return inspectorId;
+    public float getBlockedTime() {
+        return blockedTime /1000;
     }
 
-    public void setInspectorId(int inspectorId) {
-        this.inspectorId = inspectorId;
+    public synchronized void shouldStop() {
+        this.doStop = true;
     }
+
+    private synchronized boolean keepRunning() {
+        return !this.doStop;
+    }
+
 }

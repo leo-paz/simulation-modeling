@@ -48,7 +48,8 @@ public class Workstation implements Runnable {
     }
 
     private Float getNextServiceTime() {
-        var rand = new Random();
+        var seed = new Random().nextInt();
+        var rand = new Random(seed);
         var num = rand.nextFloat();
         return (float) (Math.log(1 - num) / (-lambda));
     }
@@ -108,7 +109,9 @@ public class Workstation implements Runnable {
 
     private void makeProduct(){
         try {
-            Thread.sleep((long) (getNextServiceTime().longValue() * 1000L));
+            var serviceTime = (getNextServiceTime() );
+            System.out.println("Workstation time long value: " + serviceTime + " in minutes");
+            Thread.sleep((long) (serviceTime * 1000));
             //  System.out.println("Produced: " + Product.name());
             productsProduced++;
             for (Component component: buffers.keySet()) {

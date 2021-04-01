@@ -9,8 +9,9 @@ public class Inspector implements Runnable {
     private HashMap<Component, Float> componentsLambdas = new HashMap<Component, Float>();
     private boolean doStop = false;
     private Integer iterations;
-    private Random r;
     private float blockedTime = 0;
+    private double busyTime = 0;
+    private int componentsInspected=0;
 
     public Inspector(HashMap<Component, String> components, HashMap<Component, List<Workstation>> workstations, Integer iterations) {
         this.workstations = workstations;
@@ -19,7 +20,6 @@ public class Inspector implements Runnable {
         for(Component c: components.keySet()) {
             componentsLambdas.put(c, calculateLambda(components.get(c)));
         }
-        r = new Random();
     }
 
     private float calculateLambda(String pathToData) {
@@ -52,13 +52,17 @@ public class Inspector implements Runnable {
     }
 
     private Float getNextServiceTime(Component component) {
-        var rand = new Random();
+        var seed = new Random().nextInt();
+        var rand = new Random(seed);
         var num = rand.nextFloat();
+        System.out.println("Next service time");
+        System.out.println((Math.log(1 - num) / (-componentsLambdas.get(component))));
         return (float) (Math.log(1 - num) / (-componentsLambdas.get(component)));
     }
 
     private Component getRandomComponent(){
-        Random rand = new Random(new Random().nextInt());
+        var seed = new Random().nextInt();
+        Random rand = new Random(seed);
         return (Component) componentsLambdas.keySet().toArray()[rand.nextInt(componentsLambdas.keySet().size())];
     }
     
@@ -69,7 +73,12 @@ public class Inspector implements Runnable {
             Component component = getRandomComponent();
 
             try {
-                Thread.sleep((long) (getNextServiceTime(component).longValue() * 1000L)); //* 1000L));
+
+                var serviceTime = (getNextServiceTime(component));
+                System.out.println("service time: " + serviceTime + " in minutes");
+                Thread.sleep((long) (serviceTime * 1000));
+                this.busyTime = busyTime + (serviceTime*1000);
+                this.componentsInspected++;
 
                 Workstation workstation = findBuffer(component);
                 if(workstation == null) {
@@ -89,6 +98,14 @@ public class Inspector implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+    public double getBusyTime() {
+        return busyTime / 1000;
+    }
+
+    public int getComponentsInspected(){
+        return this.componentsInspected;
     }
 
     private Workstation findBuffer(Component component){

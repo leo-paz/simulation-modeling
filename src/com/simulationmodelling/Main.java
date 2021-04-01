@@ -90,7 +90,7 @@ public class Main implements Runnable {
 
         System.out.println("<-_- Total Components inspected -_->");
         System.out.println("Number of components inspected for Inspector 1: " + insp1.getComponentsInspected());
-        System.out.println("Number of components inspected for Inspector 2: " + insp2.getComponentsInspected()+"/n");
+        System.out.println("Number of components inspected for Inspector 2: " + insp2.getComponentsInspected()+"\n");
 
         System.out.println("<-_- Inspectors busy time -_->");
         System.out.println("Busy time for Inspector 1: " + insp1.getBusyTime());
